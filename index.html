@@ -125,8 +125,8 @@
 
     .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
     .file-tag { background: var(--bg-main); border: 1px solid var(--border); padding: 0.4rem 0.6rem; border-radius: 0.4rem; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; }
-    .file-tag a { color: var(--accent); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .file-tag a:hover { text-decoration: underline; }
+    .file-tag .file-link { color: var(--accent); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+    .file-tag .file-link:hover { text-decoration: underline; }
     .file-tag-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
   </style>
 </head>
@@ -558,12 +558,19 @@
       }
       ki.attachments.forEach((att, idx) => {
         container.innerHTML += `<div class="file-tag">
-          <a href="${att.data}" download="${att.name}">${att.name}</a>
+          <span class="file-link" onclick="downloadKIAttachment(${idx})">${att.name}</span>
           <div class="file-tag-actions">
             <button class="btn-danger" style="font-size:0.7rem; padding:0.1rem 0.4rem;" onclick="deleteKIAttachment(${idx})">x</button>
           </div>
         </div>`;
       });
+    }
+
+    function downloadKIAttachment(idx) {
+      const ki = db.find(item => item.id === currentKIId);
+      if (!ki || !ki.attachments || !ki.attachments[idx]) return;
+      const att = ki.attachments[idx];
+      downloadFile(att.data, att.name);
     }
 
     function handleFileUpload(e) {
@@ -727,12 +734,20 @@
       }
       mod.files.forEach((f, idx) => {
         container.innerHTML += `<div class="file-tag">
-          <a href="${f.data}" download="${f.name}">${f.name}</a>
+          <span class="file-link" onclick="downloadModuleFile(${idx})">${f.name}</span>
           <div class="file-tag-actions">
             <button class="btn-danger" style="font-size:0.7rem; padding:0.1rem 0.4rem;" onclick="deleteModuleFile(${idx})">x</button>
           </div>
         </div>`;
       });
+    }
+
+    function downloadModuleFile(idx) {
+      const ki = db.find(item => item.id === currentKIId);
+      const mod = ki ? ki.modules.find(m => m.id === currentModuleId) : null;
+      if (!mod || !mod.files || !mod.files[idx]) return;
+      const f = mod.files[idx];
+      downloadFile(f.data, f.name);
     }
 
     function handleModuleFileUpload(e) {
@@ -880,39 +895,50 @@
       setTimeout(() => { toast.style.opacity = '0'; }, 3000);
     }
 
-    async function exportData() {
+    /**
+     * Speichert eine Datei. Nutzt in der Android-App die native
+     * Brücke (echtes Speichern im Downloads-Ordner). Im normalen
+     * Browser (z.B. beim Testen) fällt es automatisch auf den
+     * klassischen Blob-Download zurück.
+     */
+    function downloadFile(dataUri, filename) {
+      if (typeof Android !== 'undefined' && Android.saveFile) {
+        Android.saveFile(dataUri, filename);
+        showToast('Gespeichert: ' + filename);
+        return;
+      }
+      // Browser-Fallback
+      const a = document.createElement('a');
+      a.href = dataUri;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function exportData() {
       try {
         const payload = { db };
-        const jsonString = JSON.stringify(payload, null, 2);
-        const fileName = 'james_core_backup_' + new Date().toISOString().slice(0, 10) + '.json';
-        const file = new File([jsonString], fileName, { type: 'application/json' });
+        const json = JSON.stringify(payload, null, 2);
+        const filename = 'james_core_backup_' + new Date().toISOString().slice(0, 10) + '.json';
 
-        // Nutzt die Web Share API (perfekt für Android/APKs zum Teilen in Google Drive, WhatsApp, etc.)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: 'AIDevnotes Backup',
-            text: 'Hier ist das aktuelle Backup deiner Datenbank.',
-            files: [file]
-          });
-          showToast('Backup erfolgreich geteilt.');
+        if (typeof Android !== 'undefined' && Android.saveFile) {
+          const base64 = btoa(unescape(encodeURIComponent(json)));
+          downloadFile('data:application/json;base64,' + base64, filename);
         } else {
-          // Fallback für Browser/Umgebungen ohne File-Share-Support
-          const blob = new Blob([jsonString], { type: 'application/json' });
+          const blob = new Blob([json], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = fileName;
+          a.download = filename;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
-          showToast('Backup erfolgreich heruntergeladen.');
         }
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          console.error('Export fehlgeschlagen:', err);
-          showToast('Export fehlgeschlagen.');
-        }
+        console.error('Export fehlgeschlagen:', err);
+        showToast('Export fehlgeschlagen.');
       }
     }
 
