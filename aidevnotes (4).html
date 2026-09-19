@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIDevnotes</title>
+  <meta name="theme-color" content="#0b0f19">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #151d2a;
+      --accent: #38bdf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #26334d;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --code-bg: #070a10;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background-color: var(--bg-card); border-bottom: 1px solid var(--border);
+      padding: 0.8rem 1.2rem; display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100;
+    }
+
+    .brand-container { display: flex; align-items: center; gap: 0.8rem; }
+    .brand { font-size: 1.2rem; font-weight: 700; color: var(--accent); cursor: pointer; display: flex; align-items: center; gap: 0.6rem; }
+    
+    .header-actions { display: flex; gap: 0.6rem; align-items: center; }
+
+    .btn-icon {
+      background: var(--bg-main); border: 1px solid var(--border); color: var(--text-main);
+      width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center;
+      align-items: center; cursor: pointer; font-size: 0.9rem;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      user-select: none; flex-shrink: 0;
+    }
+    .btn-icon:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .breadcrumb-bar {
+      padding: 0.8rem 1.2rem; background-color: rgba(21, 29, 42, 0.5);
+      border-bottom: 1px solid var(--border); font-size: 0.9rem; color: var(--text-muted);
+      display: flex; align-items: center; gap: 0.8rem;
+    }
+    .breadcrumb-item { cursor: pointer; color: var(--accent); }
+
+    main { flex: 1; padding: 1.2rem; max-width: 100%; margin: 0 auto; width: 100%; }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .ki-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    .card {
+      background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 0.8rem;
+      padding: 1rem 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; cursor: pointer;
+      transition: border-color 0.2s, transform 0.1s;
+      word-break: break-word;
+      position: relative;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .card-title { font-size: 1.1rem; font-weight: bold; color: var(--accent); }
+    .card-desc { font-size: 0.85rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+    .empty-hint { color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0; grid-column: 1 / -1; }
+
+    .detail-header {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 0.8rem;
+      padding: 1.2rem; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.8rem;
+      cursor: pointer; transition: border-color 0.2s;
+    }
+    .detail-header:hover { border-color: var(--accent); }
+
+    .section-title {
+      font-size: 1.1rem; color: var(--accent); margin-bottom: 0.8rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .modules-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .module-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 0.8rem;
+      padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .module-card:hover { border-color: var(--accent); }
+
+    textarea, input, select {
+      background: var(--bg-main); border: 1px solid var(--border); color: var(--text-main);
+      padding: 0.6rem; border-radius: 0.4rem; width: 100%; font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+    textarea:disabled, input:disabled, select:disabled {
+      background: transparent !important;
+      border-color: transparent !important;
+      padding: 0.2rem 0 !important;
+      color: var(--text-main) !important;
+      opacity: 1 !important;
+      cursor: default !important;
+      resize: none !important;
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      box-shadow: none !important;
+    }
+    textarea.code-editor { font-family: monospace; background: var(--code-bg); color: #7dd3fc; }
+    textarea.code-editor:disabled { background: transparent !important; color: #7dd3fc !important; }
+
+    .btn-action {
+      background: var(--accent); color: var(--bg-main); border: none; padding: 0.6rem 1rem;
+      border-radius: 0.5rem; font-weight: bold; cursor: pointer;
+    }
+    .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 0.4rem 0.8rem; border-radius: 0.4rem; cursor: pointer; }
+
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; padding: 1rem;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 0.8rem; padding: 1.2rem; width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; }
+
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+    .file-tag { background: var(--bg-main); border: 1px solid var(--border); padding: 0.4rem 0.6rem; border-radius: 0.4rem; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; }
+    .file-tag a { color: var(--accent); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-tag a:hover { text-decoration: underline; }
+    .file-tag-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-container">
+      <div class="brand" onclick="showOverview()">AIDevnotes</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="openContextModal()" title="Hinzufügen">+</button>
+      <button class="btn-icon" onclick="openAccountModal()" title="Account & Backup">👤</button>
+    </div>
+  </header>
+
+  <div class="breadcrumb-bar" id="breadcrumb">
+    <button class="btn-icon" id="btn-back-breadcrumb" style="display:none;" onclick="showOverview()" title="Zurück zur Datenbank">←</button>
+    <div id="breadcrumb-content">
+      <span class="breadcrumb-item" onclick="showOverview()">Datenbank</span>
+    </div>
+  </div>
+
+  <main>
+    <div id="view-overview" class="view active">
+      <div class="ki-grid" id="ki-grid-container"></div>
+    </div>
+
+    <div id="view-detail" class="view">
+      <div class="detail-header" onclick="openKIDetailModal()">
+        <div style="display:flex; justify-content:space-between; align-items: center;">
+          <div>
+            <h1 id="detail-ki-name" class="card-title" style="font-size: 1.6rem;"></h1>
+            <div id="detail-ki-meaning" style="font-size:0.85rem; color:var(--text-muted);"></div>
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-muted); background: var(--bg-main); border: 1px solid var(--border); padding: 0.3rem 0.6rem; border-radius: 0.4rem;">
+            Details & Bearbeiten ↗
+          </span>
+        </div>
+        <p id="detail-ki-desc-text" style="font-size:0.95rem; color:var(--text-main); margin-top:0.4rem; white-space: pre-wrap;"></p>
+      </div>
+
+      <div class="section-title">
+        <span>Integrierte Module</span>
+        <button class="btn-action" onclick="openAddModuleModal()">+ Modul</button>
+      </div>
+      <div class="modules-list" id="modules-container"></div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="modal-confirm-delete" onclick="if(event.target===this) closeDeleteConfirmModal()">
+    <div class="modal" style="max-width: 420px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="color: var(--danger); font-size: 1.2rem;">Löschen bestätigen</h2>
+        <button class="btn-icon" onclick="closeDeleteConfirmModal()">✕</button>
+      </div>
+      <p id="confirm-delete-text" style="font-size: 0.95rem; color: var(--text-main); margin: 0.5rem 0; line-height: 1.4;"></p>
+      <div style="display:flex; justify-content:flex-end; gap:0.6rem; margin-top: 0.8rem;">
+        <button class="btn-danger" style="background: var(--bg-main); border: 1px solid var(--border); color: var(--text-main);" onclick="closeDeleteConfirmModal()">Abbrechen</button>
+        <button class="btn-action" style="background: var(--danger); color: white;" id="btn-confirm-delete-action">Löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-ki-detail" onclick="if(event.target===this) closeModals()">
+    <div class="modal">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="color: var(--accent);">KI Details & Konfiguration</h2>
+        <button class="btn-icon" id="btn-edit-ki-toggle" onclick="toggleKIEditMode()" title="Bearbeiten umschalten">✏️</button>
+      </div>
+
+      <div>
+        <label style="font-size:0.8rem; color:var(--text-muted);">KI Name</label>
+        <input type="text" id="ki-detail-name" disabled>
+      </div>
+
+      <div>
+        <label style="font-size:0.8rem; color:var(--text-muted);">Bedeutung</label>
+        <input type="text" id="ki-detail-meaning" disabled>
+      </div>
+
+      <div>
+        <label style="font-size:0.8rem; color:var(--text-muted);">Beschreibung</label>
+        <textarea id="ki-detail-desc" rows="2" disabled></textarea>
+      </div>
+
+      <div style="border-top: 1px solid var(--border); padding-top: 0.8rem;">
+        <label style="font-size:0.8rem; color:var(--text-muted);">Notizen</label>
+        <textarea id="ki-detail-notes" rows="3" placeholder="Zusätzliche Notizen zur KI..." disabled></textarea>
+      </div>
+
+      <div style="border-top: 1px solid var(--border); padding-top: 0.8rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+          <h3 style="font-size:1rem; color:var(--accent);">KI-Anhänge</h3>
+          <label class="btn-action" style="cursor:pointer; font-size:0.8rem; padding:0.3rem 0.6rem;">
+            + Datei anhängen
+            <input type="file" id="ki-file-uploader" style="display:none;" onchange="handleFileUpload(event)">
+          </label>
+        </div>
+        <div id="ki-files-list" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top: 1rem;">
+        <button class="btn-danger" onclick="deleteCurrentKI()">KI Löschen</button>
+        <div style="display:flex; gap:0.5rem;">
+          <button class="btn-danger" onclick="closeModals()">Schließen</button>
+          <button class="btn-action" id="btn-save-ki" style="display:none;" onclick="saveKIDetails()">Speichern</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-module-detail" onclick="if(event.target===this) closeModals()">
+    <div class="modal">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 id="mod-modal-title" style="color: var(--accent);">Modul Details</h2>
+        <button class="btn-icon" id="btn-edit-toggle" onclick="toggleModuleEditMode()" title="Bearbeiten umschalten">✏️</button>
+      </div>
+
+      <div>
+        <label style="font-size:0.8rem; color:var(--text-muted);">Modul Name</label>
+        <input type="text" id="mod-detail-name" disabled>
+      </div>
+
+      <div>
+        <label style="font-size:0.8rem; color:var(--text-muted);">Bedeutung</label>
+        <input type="text" id="mod-detail-meaning" disabled>
+      </div>
+
+      <div>
+        <label style="font-size:0.8rem; color:var(--text-muted);">Notizen</label>
+        <textarea id="mod-detail-notes" rows="3" placeholder="Notizen zum Modul..." disabled></textarea>
+      </div>
+
+      <div style="border-top: 1px solid var(--border); padding-top: 0.8rem;">
+        <h3 style="font-size:1rem; color:var(--accent); margin-bottom: 0.5rem;">Optionen</h3>
+        <div class="options-grid">
+          <div>
+            <label style="font-size:0.8rem; color:var(--text-muted);">Status</label>
+            <select id="mod-opt-status" disabled>
+              <option value="Aktiv">Aktiv</option>
+              <option value="Inaktiv">Inaktiv</option>
+              <option value="Test">Testmodus</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.8rem; color:var(--text-muted);">Priorität</label>
+            <select id="mod-opt-prio" disabled>
+              <option value="Hoch">Hoch</option>
+              <option value="Mittel">Mittel</option>
+              <option value="Niedrig">Niedrig</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid var(--border); padding-top: 0.8rem;">
+        <label style="font-size:0.8rem; color:var(--text-muted);">Code / Konfiguration</label>
+        <textarea id="mod-detail-code" class="code-editor" rows="5" disabled></textarea>
+      </div>
+
+      <div style="border-top: 1px solid var(--border); padding-top: 0.8rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+          <h3 style="font-size:1rem; color:var(--accent);">Modul-Dateien</h3>
+          <label class="btn-action" style="cursor:pointer; font-size:0.8rem; padding:0.3rem 0.6rem;">
+            + Datei anhängen
+            <input type="file" id="mod-file-uploader" style="display:none;" onchange="handleModuleFileUpload(event)">
+          </label>
+        </div>
+        <div id="mod-files-list" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top: 1rem;">
+        <button class="btn-danger" onclick="deleteCurrentModule()">Modul Löschen</button>
+        <div style="display:flex; gap:0.5rem;">
+          <button class="btn-danger" onclick="closeModals()">Schließen</button>
+          <button class="btn-action" id="btn-save-mod" style="display:none;" onclick="saveModuleDetails()">Speichern</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-ki" onclick="if(event.target===this) closeModals()">
+    <div class="modal">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="color: var(--accent);">Neue KI-Instanz</h2>
+        <button class="btn-icon" onclick="closeModals()">✕</button>
+      </div>
+      <input type="text" id="new-ki-name" placeholder="KI Name (z.B. JAMES)">
+      <input type="text" id="new-ki-meaning" placeholder="Bedeutung">
+      <textarea id="new-ki-desc" rows="3" placeholder="Beschreibung..."></textarea>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+        <button class="btn-danger" onclick="closeModals()">Abbrechen</button>
+        <button class="btn-action" onclick="createNewKI()">Erstellen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-module" onclick="if(event.target===this) closeModals()">
+    <div class="modal">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="color: var(--accent);">Neues Modul</h2>
+        <button class="btn-icon" onclick="closeModals()">✕</button>
+      </div>
+      <input type="text" id="new-mod-name" placeholder="Modul Name (z.B. RALPH)">
+      <input type="text" id="new-mod-meaning" placeholder="Bedeutung">
+      <textarea id="new-mod-code" class="code-editor" rows="4" placeholder="Code / Config..."></textarea>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+        <button class="btn-danger" onclick="closeModals()">Abbrechen</button>
+        <button class="btn-action" onclick="addModuleToCurrentKI()">Hinzufügen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-account" onclick="if(event.target===this) closeModals()">
+    <div class="modal">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="color: var(--accent);">Account & Sync</h2>
+        <button class="btn-icon" onclick="closeModals()">✕</button>
+      </div>
+      <button class="btn-action" onclick="exportData()">Backup Exportieren</button>
+      <button class="btn-action" onclick="document.getElementById('import-file').click()">Backup Importieren</button>
+      <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importData(event)">
+      <button class="btn-danger" onclick="closeModals()">Schließen</button>
+    </div>
+  </div>
+
+  <script>
+    let db = JSON.parse(localStorage.getItem('james_core_db')) || [{
+      id: 'ki-james', name: 'JAMES', meaning: 'Just A Modular Essential System',
+      desc: 'Haupt-KI-System', notes: '', modules: [{
+        id: 'mod-1', name: 'RALPH', meaning: 'Logger', code: 'type: logger', notes: '',
+        options: { status: 'Aktiv', prio: 'Hoch' },
+        files: []
+      }],
+      attachments: []
+    }];
+
+    let currentKIId = null;
+    let currentModuleId = null;
+    let isModuleEditMode = false;
+    let isKIEditMode = false;
+    let hoveredItem = null;
+    let undoStack = [];
+    let suppressHistoryPush = false;
+
+    window.addEventListener('popstate', (event) => {
+      suppressHistoryPush = true;
+      const state = event.state;
+      const activeModal = document.querySelector('.modal-overlay.active');
+      if (activeModal && (!state || !state.modal)) {
+        closeModals(true);
+        suppressHistoryPush = false;
+        return;
+      }
+
+      if (state && state.view === 'detail' && state.kiId) {
+        openKIDetail(state.kiId, true);
+      } else {
+        showOverview(true);
+      }
+      suppressHistoryPush = false;
+    });
+
+    function updateUrlState(view, kiId = null, modalId = null) {
+      if (suppressHistoryPush) return;
+      const stateObj = { view, kiId, modal: modalId };
+      history.pushState(stateObj, '', window.location.pathname);
+    }
+
+    function saveStateForUndo() {
+      if (undoStack.length >= 25) undoStack.shift();
+      undoStack.push(JSON.stringify({ db }));
+    }
+
+    function undo() {
+      if (undoStack.length === 0) {
+        showToast('Nichts zum Rückgängig machen.');
+        return;
+      }
+      const restored = JSON.parse(undoStack.pop());
+      db = restored.db;
+      saveDB(true);
+      showToast('Aktion rückgängig gemacht (Strg+Z)');
+      
+      if (currentKIId) {
+        const kiExists = db.find(k => k.id === currentKIId);
+        if (kiExists) {
+          openKIDetail(currentKIId, true);
+        } else {
+          showOverview(true);
+        }
+      } else {
+        showOverview(true);
+      }
+    }
+
+    function saveDB(skipUndo = false) {
+      if (!skipUndo) saveStateForUndo();
+      try {
+        localStorage.setItem('james_core_db', JSON.stringify(db));
+      } catch (err) {
+        console.error('Speichern fehlgeschlagen:', err);
+      }
+    }
+
+    function closeModals(skipHistory = false) {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    }
+
+    function openContextModal() {
+      if (currentKIId) {
+        openAddModuleModal();
+      } else {
+        document.getElementById('modal-ki').classList.add('active');
+        updateUrlState(currentKIId ? 'detail' : 'overview', currentKIId, 'modal-ki');
+      }
+    }
+
+    function openAddModuleModal() {
+      document.getElementById('new-mod-name').value = '';
+      document.getElementById('new-mod-meaning').value = '';
+      document.getElementById('new-mod-code').value = '';
+      document.getElementById('modal-module').classList.add('active');
+      updateUrlState('detail', currentKIId, 'modal-module');
+    }
+
+    function openAccountModal() {
+      document.getElementById('modal-account').classList.add('active');
+      updateUrlState(currentKIId ? 'detail' : 'overview', currentKIId, 'modal-account');
+    }
+
+    function showOverview(skipHistory = false) {
+      currentKIId = null;
+      document.getElementById('view-overview').classList.add('active');
+      document.getElementById('view-detail').classList.remove('active');
+      document.getElementById('btn-back-breadcrumb').style.display = 'none';
+      document.getElementById('breadcrumb-content').innerHTML = `<span class="breadcrumb-item" onclick="showOverview()">Datenbank</span>`;
+      renderOverviewGrid();
+      if (!skipHistory) updateUrlState('overview');
+    }
+
+    function openKIDetail(id, skipHistory = false) {
+      currentKIId = id;
+      const ki = db.find(item => item.id === id);
+      if (!ki) return;
+      document.getElementById('view-overview').classList.remove('active');
+      document.getElementById('view-detail').classList.add('active');
+      document.getElementById('btn-back-breadcrumb').style.display = 'inline-flex';
+      document.getElementById('breadcrumb-content').innerHTML = `<span class="breadcrumb-item" onclick="showOverview()">Datenbank</span> / <span>${ki.name}</span>`;
+      document.getElementById('detail-ki-name').innerText = ki.name;
+      document.getElementById('detail-ki-meaning').innerText = ki.meaning;
+      document.getElementById('detail-ki-desc-text').innerText = ki.desc || 'Keine Beschreibung vorhanden.';
+      renderModules();
+      if (!skipHistory) updateUrlState('detail', id);
+    }
+
+    let pendingDeleteAction = null;
+
+    function requestConfirmation(message, actionCallback) {
+      document.getElementById('confirm-delete-text').innerText = message;
+      pendingDeleteAction = actionCallback;
+      document.getElementById('modal-confirm-delete').classList.add('active');
+      updateUrlState(currentKIId ? 'detail' : 'overview', currentKIId, 'modal-confirm-delete');
+    }
+
+    function closeDeleteConfirmModal() {
+      document.getElementById('modal-confirm-delete').classList.remove('active');
+      pendingDeleteAction = null;
+    }
+
+    document.getElementById('btn-confirm-delete-action').onclick = function() {
+      if (pendingDeleteAction) {
+        pendingDeleteAction();
+      }
+      closeDeleteConfirmModal();
+    };
+
+    function openKIDetailModal() {
+      const ki = db.find(item => item.id === currentKIId);
+      if (!ki) return;
+
+      isKIEditMode = false;
+      updateKIEditModeUI();
+
+      document.getElementById('ki-detail-name').value = ki.name || '';
+      document.getElementById('ki-detail-meaning').value = ki.meaning || '';
+      document.getElementById('ki-detail-desc').value = ki.desc || '';
+      document.getElementById('ki-detail-notes').value = ki.notes || '';
+
+      renderKIAttachments(ki);
+      document.getElementById('modal-ki-detail').classList.add('active');
+      updateUrlState('detail', currentKIId, 'modal-ki-detail');
+    }
+
+    function toggleKIEditMode() {
+      isKIEditMode = !isKIEditMode;
+      updateKIEditModeUI();
+    }
+
+    function updateKIEditModeUI() {
+      const fields = ['ki-detail-name', 'ki-detail-meaning', 'ki-detail-desc', 'ki-detail-notes'];
+      fields.forEach(id => document.getElementById(id).disabled = !isKIEditMode);
+      document.getElementById('btn-save-ki').style.display = isKIEditMode ? 'inline-block' : 'none';
+      document.getElementById('btn-edit-ki-toggle').style.background = isKIEditMode ? 'var(--accent)' : 'var(--bg-main)';
+    }
+
+    function saveKIDetails() {
+      const ki = db.find(item => item.id === currentKIId);
+      if (!ki) return;
+
+      saveStateForUndo();
+      ki.name = document.getElementById('ki-detail-name').value;
+      ki.meaning = document.getElementById('ki-detail-meaning').value;
+      ki.desc = document.getElementById('ki-detail-desc').value;
+      ki.notes = document.getElementById('ki-detail-notes').value;
+
+      saveDB(true);
+      openKIDetail(ki.id, true);
+      toggleKIEditMode();
+      showToast('KI-Details gespeichert');
+    }
+
+    function renderKIAttachments(ki) {
+      const container = document.getElementById('ki-files-list');
+      container.innerHTML = '';
+      if (!ki.attachments || ki.attachments.length === 0) {
+        container.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted);">Keine Dateien angehängt.</div>`;
+        return;
+      }
+      ki.attachments.forEach((att, idx) => {
+        container.innerHTML += `<div class="file-tag">
+          <a href="${att.data}" download="${att.name}">${att.name}</a>
+          <div class="file-tag-actions">
+            <button class="btn-danger" style="font-size:0.7rem; padding:0.1rem 0.4rem;" onclick="deleteKIAttachment(${idx})">x</button>
+          </div>
+        </div>`;
+      });
+    }
+
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      const ki = db.find(item => item.id === currentKIId);
+      if (!file || !ki) { e.target.value = ''; return; }
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        saveStateForUndo();
+        if (!ki.attachments) ki.attachments = [];
+        ki.attachments.push({ name: file.name, data: evt.target.result });
+        try {
+          saveDB(true);
+        } catch (err) {
+          showToast('Datei konnte nicht gespeichert werden.');
+          ki.attachments.pop();
+        }
+        renderKIAttachments(ki);
+      };
+      reader.onerror = () => showToast('Datei konnte nicht gelesen werden.');
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+
+    function deleteKIAttachment(idx) {
+      const ki = db.find(item => item.id === currentKIId);
+      if (ki && ki.attachments && ki.attachments[idx]) {
+        const fileName = ki.attachments[idx].name;
+        requestConfirmation(`Möchtest du den Anhang "${fileName}" wirklich löschen?`, () => {
+          saveStateForUndo();
+          ki.attachments.splice(idx, 1);
+          saveDB(true);
+          renderKIAttachments(ki);
+          showToast(`Anhang "${fileName}" gelöscht`);
+        });
+      }
+    }
+
+    function deleteKIById(id, name) {
+      const targetKI = db.find(item => item.id === id);
+      const kiName = name || (targetKI ? targetKI.name : 'diese KI');
+      requestConfirmation(`Möchtest du die KI "${kiName}" und alle darin enthaltenen Module wirklich löschen?`, () => {
+        saveStateForUndo();
+        db = db.filter(item => item.id !== id);
+        saveDB(true);
+        closeModals();
+        showOverview();
+        showToast(`KI "${kiName}" gelöscht`);
+      });
+    }
+
+    function deleteCurrentKI() {
+      if (currentKIId) {
+        deleteKIById(currentKIId);
+      }
+    }
+
+    function renderOverviewGrid() {
+      const container = document.getElementById('ki-grid-container');
+      container.innerHTML = '';
+      if (db.length === 0) {
+        container.innerHTML = `<div class="empty-hint">Noch keine KI-Instanzen. Klicke oben rechts auf "+", um eine anzulegen.</div>`;
+        return;
+      }
+      db.forEach(ki => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.onclick = () => openKIDetail(ki.id);
+        card.onmouseenter = () => { hoveredItem = { type: 'ki', id: ki.id, name: ki.name }; };
+        card.onmouseleave = () => { if (hoveredItem && hoveredItem.id === ki.id) hoveredItem = null; };
+        card.innerHTML = `<div class="card-title">${ki.name}</div><div class="card-desc">${ki.desc || ''}</div>`;
+        container.appendChild(card);
+      });
+    }
+
+    function renderModules() {
+      const ki = db.find(item => item.id === currentKIId);
+      const container = document.getElementById('modules-container');
+      container.innerHTML = '';
+      if (!ki) return;
+      if (!ki.modules || ki.modules.length === 0) {
+        container.innerHTML = `<div class="empty-hint">Noch keine Module. Klicke auf "+ Modul".</div>`;
+        return;
+      }
+      ki.modules.forEach((mod) => {
+        const item = document.createElement('div');
+        item.className = 'module-card';
+        item.onclick = () => openModuleDetailModal(mod.id);
+        item.onmouseenter = () => { hoveredItem = { type: 'module', id: mod.id, name: mod.name }; };
+        item.onmouseleave = () => { if (hoveredItem && hoveredItem.id === mod.id) hoveredItem = null; };
+        item.innerHTML = `<div><b>${mod.name}</b></div><div style="font-size:0.8rem; color:var(--text-muted);">${mod.meaning || 'Keine Beschreibung'}</div>`;
+        container.appendChild(item);
+      });
+    }
+
+    function openModuleDetailModal(modId) {
+      currentModuleId = modId;
+      const ki = db.find(item => item.id === currentKIId);
+      const mod = ki ? ki.modules.find(m => m.id === modId) : null;
+      if (!mod) return;
+
+      isModuleEditMode = false;
+      updateModuleEditModeUI();
+
+      document.getElementById('mod-modal-title').innerText = mod.name || 'Modul Details';
+      document.getElementById('mod-detail-name').value = mod.name || '';
+      document.getElementById('mod-detail-meaning').value = mod.meaning || '';
+      document.getElementById('mod-detail-notes').value = mod.notes || '';
+      document.getElementById('mod-detail-code').value = mod.code || '';
+
+      const opts = mod.options || {};
+      document.getElementById('mod-opt-status').value = opts.status || 'Aktiv';
+      document.getElementById('mod-opt-prio').value = opts.prio || 'Mittel';
+
+      renderModuleFiles(mod);
+      document.getElementById('modal-module-detail').classList.add('active');
+      updateUrlState('detail', currentKIId, 'modal-module-detail');
+    }
+
+    function toggleModuleEditMode() {
+      isModuleEditMode = !isModuleEditMode;
+      updateModuleEditModeUI();
+    }
+
+    function updateModuleEditModeUI() {
+      const fields = ['mod-detail-name', 'mod-detail-meaning', 'mod-detail-notes', 'mod-detail-code', 'mod-opt-status', 'mod-opt-prio'];
+      fields.forEach(id => document.getElementById(id).disabled = !isModuleEditMode);
+      document.getElementById('btn-save-mod').style.display = isModuleEditMode ? 'inline-block' : 'none';
+      document.getElementById('btn-edit-toggle').style.background = isModuleEditMode ? 'var(--accent)' : 'var(--bg-main)';
+    }
+
+    function saveModuleDetails() {
+      const ki = db.find(item => item.id === currentKIId);
+      const mod = ki ? ki.modules.find(m => m.id === currentModuleId) : null;
+      if (!mod) return;
+
+      saveStateForUndo();
+      mod.name = document.getElementById('mod-detail-name').value;
+      mod.meaning = document.getElementById('mod-detail-meaning').value;
+      mod.notes = document.getElementById('mod-detail-notes').value;
+      mod.code = document.getElementById('mod-detail-code').value;
+      mod.options = {
+        status: document.getElementById('mod-opt-status').value,
+        prio: document.getElementById('mod-opt-prio').value
+      };
+
+      saveDB(true);
+      renderModules();
+      document.getElementById('mod-modal-title').innerText = mod.name || 'Modul Details';
+      toggleModuleEditMode();
+      showToast('Modul-Details gespeichert');
+    }
+
+    function renderModuleFiles(mod) {
+      const container = document.getElementById('mod-files-list');
+      container.innerHTML = '';
+      if (!mod.files || mod.files.length === 0) {
+        container.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted);">Keine Dateien angehängt.</div>`;
+        return;
+      }
+      mod.files.forEach((f, idx) => {
+        container.innerHTML += `<div class="file-tag">
+          <a href="${f.data}" download="${f.name}">${f.name}</a>
+          <div class="file-tag-actions">
+            <button class="btn-danger" style="font-size:0.7rem; padding:0.1rem 0.4rem;" onclick="deleteModuleFile(${idx})">x</button>
+          </div>
+        </div>`;
+      });
+    }
+
+    function handleModuleFileUpload(e) {
+      const file = e.target.files[0];
+      const ki = db.find(item => item.id === currentKIId);
+      const mod = ki ? ki.modules.find(m => m.id === currentModuleId) : null;
+      if (!file || !mod) { e.target.value = ''; return; }
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        saveStateForUndo();
+        if (!mod.files) mod.files = [];
+        mod.files.push({ name: file.name, data: evt.target.result });
+        try {
+          saveDB(true);
+        } catch (err) {
+          showToast('Datei konnte nicht gespeichert werden.');
+          mod.files.pop();
+        }
+        renderModuleFiles(mod);
+      };
+      reader.onerror = () => showToast('Datei konnte nicht gelesen werden.');
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+
+    function deleteModuleFile(idx) {
+      const ki = db.find(item => item.id === currentKIId);
+      const mod = ki ? ki.modules.find(m => m.id === currentModuleId) : null;
+      if (mod && mod.files && mod.files[idx]) {
+        const fileName = mod.files[idx].name;
+        requestConfirmation(`Möchtest du die Datei "${fileName}" wirklich löschen?`, () => {
+          saveStateForUndo();
+          mod.files.splice(idx, 1);
+          saveDB(true);
+          renderModuleFiles(mod);
+          showToast(`Datei "${fileName}" gelöscht`);
+        });
+      }
+    }
+
+    function deleteModuleById(modId, modName) {
+      const ki = db.find(item => item.id === currentKIId);
+      if (!ki) return;
+      const targetMod = ki.modules ? ki.modules.find(m => m.id === modId) : null;
+      const name = modName || (targetMod ? targetMod.name : 'dieses Modul');
+      requestConfirmation(`Möchtest du das Modul "${name}" wirklich löschen?`, () => {
+        saveStateForUndo();
+        ki.modules = ki.modules.filter(m => m.id !== modId);
+        saveDB(true);
+        renderModules();
+        closeModals();
+        showToast(`Modul "${name}" gelöscht`);
+      });
+    }
+
+    function deleteCurrentModule() {
+      if (currentModuleId) {
+        deleteModuleById(currentModuleId);
+      }
+    }
+
+    function createNewKI() {
+      const name = document.getElementById('new-ki-name').value.trim();
+      if (!name) { showToast('Bitte einen KI-Namen angeben.'); return; }
+      saveStateForUndo();
+      const newKI = {
+        id: 'ki-' + Date.now(),
+        name,
+        meaning: document.getElementById('new-ki-meaning').value.trim(),
+        desc: document.getElementById('new-ki-desc').value.trim(),
+        notes: '',
+        modules: [],
+        attachments: []
+      };
+      db.push(newKI);
+      saveDB(true);
+      document.getElementById('new-ki-name').value = '';
+      document.getElementById('new-ki-meaning').value = '';
+      document.getElementById('new-ki-desc').value = '';
+      closeModals();
+      renderOverviewGrid();
+      openKIDetail(newKI.id);
+      showToast(`KI "${name}" erstellt`);
+    }
+
+    function addModuleToCurrentKI() {
+      const name = document.getElementById('new-mod-name').value.trim();
+      const ki = db.find(item => item.id === currentKIId);
+      if (!name) { showToast('Bitte einen Modul-Namen angeben.'); return; }
+      if (!ki) return;
+
+      saveStateForUndo();
+      ki.modules.push({
+        id: 'm-' + Date.now(),
+        name,
+        meaning: document.getElementById('new-mod-meaning').value.trim(),
+        code: document.getElementById('new-mod-code').value,
+        notes: '',
+        options: { status: 'Aktiv', prio: 'Mittel' },
+        files: []
+      });
+
+      saveDB(true);
+      document.getElementById('new-mod-name').value = '';
+      document.getElementById('new-mod-meaning').value = '';
+      document.getElementById('new-mod-code').value = '';
+      renderModules();
+      closeModals();
+      showToast(`Modul "${name}" hinzugefügt`);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const isInputActive = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (!isInputActive) {
+          e.preventDefault();
+          undo();
+        }
+      }
+
+      if (e.key === 'Delete' || e.key === 'Del') {
+        if (!isInputActive && hoveredItem) {
+          e.preventDefault();
+          if (hoveredItem.type === 'ki') {
+            deleteKIById(hoveredItem.id, hoveredItem.name);
+          } else if (hoveredItem.type === 'module') {
+            deleteModuleById(hoveredItem.id, hoveredItem.name);
+          }
+        }
+      }
+    });
+
+    function showToast(msg) {
+      let toast = document.getElementById('custom-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'custom-toast';
+        toast.style.cssText = 'position:fixed; bottom:20px; right:20px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--accent); padding:10px 16px; border-radius:8px; z-index:1000; transition:opacity 0.3s; opacity:0; pointer-events:none; font-size:0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5);';
+        document.body.appendChild(toast);
+      }
+      toast.innerText = msg;
+      toast.style.opacity = '1';
+      setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+    }
+
+    function exportData() {
+      try {
+        const payload = { db };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'james_core_backup_' + new Date().toISOString().slice(0, 10) + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Export fehlgeschlagen:', err);
+        showToast('Export fehlgeschlagen.');
+      }
+    }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const imported = JSON.parse(evt.target.result);
+          saveStateForUndo();
+          if (Array.isArray(imported)) {
+            db = imported;
+          } else if (imported.db) {
+            db = imported.db || [];
+          } else {
+            throw new Error('Ungültiges Format');
+          }
+          saveDB(true);
+          closeModals();
+          showOverview();
+          showToast('Backup erfolgreich importiert.');
+        } catch (err) {
+          console.error('Import fehlgeschlagen:', err);
+          showToast('Import fehlgeschlagen: Ungültiges Backup-Format.');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    renderOverviewGrid();
+    history.replaceState({ view: 'overview' }, '', window.location.pathname);
+  </script>
+</body>
+</html>
