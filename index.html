@@ -30,7 +30,14 @@
     }
 
     .brand-container { display: flex; align-items: center; gap: 0.8rem; }
-    .brand { font-size: 1.2rem; font-weight: 700; color: var(--accent); cursor: pointer; display: flex; align-items: center; gap: 0.6rem; }
+    .brand {
+      font-size: 1.2rem; font-weight: 700; color: var(--accent); cursor: pointer;
+      display: flex; align-items: center; gap: 0.6rem;
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
     
     .header-actions { display: flex; gap: 0.6rem; align-items: center; }
 
@@ -135,7 +142,14 @@
 
   <header>
     <div class="brand-container">
-      <div class="brand" onclick="showOverview()">AIDevnotes</div>
+      <div class="brand"
+           ontouchstart="startSecretPress(event)"
+           ontouchend="cancelSecretPress(event)"
+           ontouchcancel="cancelSecretPress(event)"
+           onmousedown="startSecretPress(event)"
+           onmouseup="cancelSecretPress(event)"
+           onmouseleave="cancelSecretPress(event)"
+           oncontextmenu="return false;">AIDevnotes</div>
     </div>
     <div class="header-actions">
       <button class="btn-icon" onclick="openContextModal()" title="Hinzufügen">+</button>
@@ -969,6 +983,38 @@
       };
       reader.readAsText(file);
       e.target.value = '';
+    }
+
+    /* --- Geheimes Menü (SSH-Konsole) --- */
+    let secretPressTimer = null;
+    let secretPressStart = 0;
+    let secretMenuTriggered = false;
+
+    function startSecretPress(e) {
+      if (e && e.cancelable) e.preventDefault();
+      cancelSecretPress();
+      secretPressStart = Date.now();
+      secretMenuTriggered = false;
+      secretPressTimer = setTimeout(() => {
+        secretMenuTriggered = true;
+        if (typeof Android !== 'undefined' && Android.openSecretMenu) {
+          Android.openSecretMenu();
+        }
+      }, 2500);
+    }
+
+    function cancelSecretPress(e) {
+      if (e && e.cancelable) e.preventDefault();
+      if (secretPressTimer) {
+        clearTimeout(secretPressTimer);
+        secretPressTimer = null;
+      }
+      // Kurzer Tipp (kein langes Halten) -> normales Verhalten: zur Übersicht
+      const wasShortTap = secretPressStart && (Date.now() - secretPressStart) < 2500;
+      if (wasShortTap && !secretMenuTriggered) {
+        showOverview();
+      }
+      secretPressStart = 0;
     }
 
     renderOverviewGrid();
