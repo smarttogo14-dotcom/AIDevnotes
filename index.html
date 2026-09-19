@@ -880,21 +880,39 @@
       setTimeout(() => { toast.style.opacity = '0'; }, 3000);
     }
 
-    function exportData() {
+    async function exportData() {
       try {
         const payload = { db };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'james_core_backup_' + new Date().toISOString().slice(0, 10) + '.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const jsonString = JSON.stringify(payload, null, 2);
+        const fileName = 'james_core_backup_' + new Date().toISOString().slice(0, 10) + '.json';
+        const file = new File([jsonString], fileName, { type: 'application/json' });
+
+        // Nutzt die Web Share API (perfekt für Android/APKs zum Teilen in Google Drive, WhatsApp, etc.)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'AIDevnotes Backup',
+            text: 'Hier ist das aktuelle Backup deiner Datenbank.',
+            files: [file]
+          });
+          showToast('Backup erfolgreich geteilt.');
+        } else {
+          // Fallback für Browser/Umgebungen ohne File-Share-Support
+          const blob = new Blob([jsonString], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast('Backup erfolgreich heruntergeladen.');
+        }
       } catch (err) {
-        console.error('Export fehlgeschlagen:', err);
-        showToast('Export fehlgeschlagen.');
+        if (err.name !== 'AbortError') {
+          console.error('Export fehlgeschlagen:', err);
+          showToast('Export fehlgeschlagen.');
+        }
       }
     }
 
